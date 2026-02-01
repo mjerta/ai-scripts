@@ -5,22 +5,17 @@
 #
 # Als the following api key need to be added to the system variables
 # [System.Environment]::SetEnvironmentVariable("OPENAI_API_KEY", "sk-your-key-here", "User")
-#
-# 
-# 1. Check for API Key
+
 if (-not $env:OPENAI_API_KEY) {
     Write-Error "Error: OPENAI_API_KEY environment variable is not set."
     exit 1
 }
 
-# 2. Capture Piped Input (stdin)
 $stdinData = ""
 if ($input) {
-    # $input is a special automatic variable in PowerShell for piped data
     $stdinData = $input | Out-String
 }
 
-# 3. Capture All Arguments (the prompt)
 $prompt = $args -join " "
 
 if (-not $prompt -and -not $stdinData) {
@@ -28,14 +23,12 @@ if (-not $prompt -and -not $stdinData) {
     exit
 }
 
-# 4. Prepare the Message
 $fullContent = if ([string]::IsNullOrWhiteSpace($stdinData)) {
     $prompt
 } else {
     "$prompt`n`n--- INPUT DATA ---`n$stdinData"
 }
 
-# 5. Define the Request Payload
 $body = @{
     model = "gpt-4o-mini"
     messages = @(
@@ -44,7 +37,6 @@ $body = @{
     )
 } | ConvertTo-Json -Depth 10
 
-# 6. Execute with a simple Progress Bar (PowerShell's version of a spinner)
 Write-Progress -Activity "AI is thinking..." -Status "Querying OpenAI API"
 
 try {
@@ -56,7 +48,6 @@ try {
 
     Write-Progress -Activity "AI is thinking..." -Completed
     
-    # 7. Output the result
     Write-Output $response.choices[0].message.content
 }
 catch {
