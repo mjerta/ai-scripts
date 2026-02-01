@@ -1,10 +1,14 @@
-$defaultPath = "$HOME/scripts"
+$defaultPath = "$HOME\scripts"
 if (-not (Test-Path $defaultPath)) { New-Item -ItemType Directory -Path $defaultPath -Force | Out-Null }
+$defaultPromptAlias = "gpt"
 
 Write-Host "--- AI prompt CLI Tool Installation ---" -ForegroundColor Cyan
 
 $installDir = Read-Host "Enter installation directory (Default: $defaultPath)"
 if ([string]::IsNullOrWhiteSpace($installDir)) { $installDir = $defaultPath }
+$promptName = Read-Host "How would you like to call your prompt "
+if ([string]::IsNullOrWhiteSpace($promptName)) { $installDir = $defaultPromptAlias }
+
 $scriptPath = Join-Path $installDir "prompt.ps1"
 
 if (-not $env:OPENAI_API_KEY) {
@@ -67,14 +71,14 @@ if (-not (Test-Path $profilePath)) { New-Item -Type File -Path $profilePath -For
 
 $functionCode = @"
 
-function gpt { 
+function `$promptName { 
     `$input | & '$scriptPath' `$args 
 }
 "@
 
 if ((Get-Content $profilePath) -notcontains "function gpt") {
     Add-Content -Path $profilePath -Value $functionCode
-    Write-Host "Function added to your PowerShell Profile!" -ForegroundColor Green
+    Write-Host "Function `promptName added to your PowerShell Profile!" -ForegroundColor Green
 }
 
 Write-Host "`nInstallation Complete! Restart PowerShell or run: . `$PROFILE" -ForegroundColor Cyan
