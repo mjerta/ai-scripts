@@ -71,14 +71,14 @@ if (-not (Test-Path $profilePath)) { New-Item -Type File -Path $profilePath -For
 
 $functionCode = @"
 
-function `$promptName { 
+function $promptName { 
     `$input | & '$scriptPath' `$args 
 }
 "@
 
 if ((Get-Content $profilePath) -notcontains "function gpt") {
     Add-Content -Path $profilePath -Value $functionCode
-    Write-Host "Function `promptName added to your PowerShell Profile!" -ForegroundColor Green
+    Write-Host "Function $promptName added to your PowerShell Profile!" -ForegroundColor Green
 }
 
 Write-Host "`nInstallation Complete! Restart PowerShell or run: . `$PROFILE" -ForegroundColor Cyan
