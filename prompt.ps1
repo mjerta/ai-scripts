@@ -37,20 +37,58 @@ $body = @{
     )
 } | ConvertTo-Json -Depth 10
 
-Write-Progress -Activity "AI is thinking..." -Status "Querying OpenAI API"
+function Show-Spinner {
+    param (
+        [string]$Message = "Working..."
+    )
+
+    $spinnerChars = "|", "/", "-", "\"
+    $index = 0
+
+    while (-not $script:SpinnerDone) {
+        Write-Host -NoNewline -ForegroundColor Yellow "`r$Message $($spinnerChars[$index])"
+        Start-Sleep -Milliseconds 100
+        $index = ($index + 1) % $spinnerChars.Length
+    }
+    Write-Host -NoNewline -ForegroundColor Yellow "`r$Message - Done! "
+    Write-Host
+}
+
+
+$script:SpinnerDone = $false
+
+$job = Start-Job -ScriptBlock {
+    param($body, $apiKey)
+    try {
+        $response = Invoke-RestMethod -Uri "https://api.openai.com/v1/chat/completions" `
+            -Method Post `
+            -Headers @{ "Authorization" = "Bearer $apiKey" } `
+            -ContentType "application/json" `
+            -Body $body
+        return $response
+    } catch {
+        throw $_
+    }
+} -ArgumentList $body, $env:OPENAI_API_KEY
+
+# Start spinner in background runspace
+$spinnerTask = [System.Threading.Tasks.Task]::Run({ Show-Spinner -Message "AI is thinking..." })
+
+while ($job.State -eq 'Running') {
+    Start-Sleep -Milliseconds 200
+}
+
+$script:SpinnerDone = $true
+
+# Wait for the spinner task to complete
+$spinnerTask.Wait()
 
 try {
-    $response = Invoke-RestMethod -Uri "https://api.openai.com/v1/chat/completions" `
-        -Method Post `
-        -Headers @{ "Authorization" = "Bearer $($env:OPENAI_API_KEY)" } `
-        -ContentType "application/json" `
-        -Body $body
-
-    Write-Progress -Activity "AI is thinking..." -Completed
-    
+    $response = Receive-Job -Job $job -ErrorAction Stop
     Write-Output $response.choices[0].message.content
-}
-catch {
-    Write-Progress -Activity "AI is thinking..." -Completed
+} catch {
     Write-Error "API Request failed: $_"
 }
+
+Remove-Job -Job $job -Force
+
